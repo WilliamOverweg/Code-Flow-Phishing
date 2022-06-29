@@ -1,3 +1,4 @@
+#load up the convert JWT token function for later use. 
 function Convert-JWTtoken {
  
     [cmdletbinding()]
