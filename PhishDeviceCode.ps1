@@ -1,6 +1,6 @@
 #load up the convert JWT token function for later use. 
 function Convert-JWTtoken {
- 
+    #I found this function on https://www.michev.info/Blog/Post/2140/decode-jwt-access-and-id-tokens-via-powershell 
     [cmdletbinding()]
     param([Parameter(Mandatory = $true)][string]$token)
  
