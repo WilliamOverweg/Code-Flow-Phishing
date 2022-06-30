@@ -1,0 +1,3 @@
+SigninLogs
+| where AppDisplayName == "Microsoft Office" or AppDisplayName == "Micrsoft Azure PowerShell" 
+| where ResourceDisplayName == "Microsoft Graph" or ResourceDisplayName == "Windows Azure Service Management API"

